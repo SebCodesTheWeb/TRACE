@@ -18,6 +18,7 @@ document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.maxDistance = 600 
 controls.minDistance = 10
+controls.maxPolarAngle = Math.PI / 2 * 0.99
 
 const gridHelperZ = new THREE.GridHelper(1000, 50, 0xffffff, 0xffffff)
 gridHelperZ.rotation.z = Math.PI / 2
@@ -58,9 +59,9 @@ scene.background = new THREE.CubeTextureLoader()
 const loader = new GLTFLoader();
 
 let rocketModel: any
-loader.load( '3d/rocket.glb', function ( rocket ) {
+loader.load( '3d/raket1.glb', function ( rocket ) {
     rocketModel = rocket.scene
-    rocket.scene.scale.set(5, 5, 5)
+    rocket.scene.scale.set(0.5, 0.5, 0.5)
     rocket.scene.position.y = -1
 	scene.add( rocket.scene );
 }, undefined, function ( error ) {
@@ -114,7 +115,7 @@ function getRandomCoordinates(spread=200) {
 
 function displayData() {
     for(let i = 0; i < data.length; i++) {
-        const geometry = new THREE.SphereGeometry(1, 24, 24)
+        const geometry = new THREE.SphereGeometry(0.25, 24, 24)
         const material = new THREE.MeshStandardMaterial({
             color: 0xFF8000,
         })
@@ -163,7 +164,7 @@ function findSelectedData() {
 }
 
 let rocketPosition = [0, 0, 0]
-const velocity = 0.1
+const velocity = 0.05
 let currentTarget = 1
 function updateRocketPosition() {
     if(currentTarget !== null && currentTarget < data.length) {
@@ -295,6 +296,5 @@ for(let i = 0; i < NOT_PROCESSED_DATA.length-1; i++) {
         acceleration[0] = NOT_PROCESSED_DATA[i].x
         acceleration[1] = NOT_PROCESSED_DATA[i].y
         acceleration[2] = NOT_PROCESSED_DATA[i].z
-        console.log(acceleration, velocityCount, position)
     }
 }
