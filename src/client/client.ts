@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { GUI } from 'dat.gui'
 
 const data = require('./data.json')
 const mouse = new THREE.Vector2()
@@ -181,6 +182,16 @@ function updateInfoBox() {
     }
 }
 
+const gui = new GUI()
+let rocketAnimationButton = { playAnimation:function(){ startRocketAnimation() }};
+gui.add(rocketAnimationButton,'playAnimation');
+const cameraFolder = gui.addFolder('Camera')
+cameraFolder.add(camera.position, 'x', -1000, 1000)
+cameraFolder.add(camera.position, 'y', 0, 1000)
+cameraFolder.add(camera.position, 'z', -1000, 1000)
+cameraFolder.add(camera, 'zoom', 0.1, 10)
+cameraFolder.open()
+
 let acceleration = [0, 0, 0]
 let velocityCount = [0, 0, 0]
 let position = [0, 0, 0]
@@ -245,7 +256,6 @@ function startRocketAnimation(startPos: number[] = [0, 0, 0], startVelocity: num
     velocity = startVelocity
     currentTarget = 0 
 }
-startRocketAnimation()
 function updateRocketPosition() {
     if(currentTarget !== null && currentTarget < trackedPositions.length && pathRenderCompleted ) {
         const x = trackedPositions[currentTarget][0] - rocketPosition[0]
@@ -278,14 +288,11 @@ function updateRocketPosition() {
         } else {
             angleX = Math.atan(y / z)
         }
-        rocketModel.rotation.z = -angleZ
-        rocketModel.rotation.x = angleX
+        // rocketModel.rotation.z = -angleZ
+        // rocketModel.rotation.x = angleX
         if(pointsClose(rocketPosition, trackedPositions[currentTarget])) {
             currentTarget++
         }
-    }
-    if(currentTarget === trackedPositions.length) {
-        startRocketAnimation()
     }
 }
 
@@ -301,5 +308,6 @@ function animate() {
 }
 
 function render() {
+    camera.updateProjectionMatrix()
     renderer.render(scene, camera)
 }
