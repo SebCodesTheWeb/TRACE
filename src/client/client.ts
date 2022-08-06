@@ -42,6 +42,7 @@ const ground = new THREE.Mesh( groundGeometry,
 )
 
 ground.rotation.x = Math.PI / 2
+ground.position.y = -1
 scene.add( ground );
 
 
@@ -113,30 +114,7 @@ function getRandomCoordinates(spread=200) {
     return [x, y + 100, z]
 } 
 
-function displayData() {
-    for(let i = 0; i < data.length; i++) {
-        const geometry = new THREE.SphereGeometry(0.25, 24, 24)
-        const material = new THREE.MeshStandardMaterial({
-            color: 0xFF8000,
-        })
-        const point = new THREE.Mesh(geometry, material)
-        point.position.set(data[i].x, data[i].y, data[i].z)
-        scene.add(point)
-    }
-}
-displayData()
 
-const material = new THREE.LineBasicMaterial( {
-     linewidth: 10,
-     color: 0x00ff00,
-    } )
-const points = []
-for(let i = 0; i < data.length; i++) {
-    points.push(new THREE.Vector3(data[i].x, data[i].y, data[i].z))
-}
-const geometry = new THREE.BufferGeometry().setFromPoints( points )
-const line = new THREE.Line( geometry, material );
-scene.add(line)
 
 function onMouseMove( event: any ) {
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -163,52 +141,11 @@ function findSelectedData() {
     }
 }
 
-let rocketPosition = [0, 0, 0]
-const velocity = 0.05
-let currentTarget = 1
-function updateRocketPosition() {
-    if(currentTarget !== null && currentTarget < data.length) {
-        const x = data[currentTarget].x - rocketPosition[0]
-        const y = data[currentTarget].y - rocketPosition[1]
-        const z = data[currentTarget].z - rocketPosition[2]
-        const length = Math.sqrt(x * x + y * y + z * z)
-        const xVelocity = x / length * velocity
-        const yVelocity = y / length * velocity
-        const zVelocity = z / length * velocity
-        rocketPosition[0] += xVelocity
-        rocketPosition[1] += yVelocity
-        rocketPosition[2] += zVelocity
-        rocketModel.position.set(rocketPosition[0], rocketPosition[1], rocketPosition[2])
 
-        let angleZ: number
-        let angleX: number
-
-        if(xVelocity > 0) {
-            angleZ = Math.PI / 2 - Math.atan(y / x)
-        } else if(xVelocity === 0) {
-            angleZ = 0
-        } else {
-            angleZ = Math.atan(y / x)
-        }
-        if(zVelocity > 0) {
-            angleX = Math.PI / 2 - Math.atan(y / z)
-        } else if(zVelocity === 0) {
-            angleX = 0
-        } else {
-            angleX = Math.atan(y / z)
-        }
-        rocketModel.rotation.z = -angleZ
-        rocketModel.rotation.x = angleX
-        if(pointsClose(rocketPosition, data[currentTarget])) {
-            currentTarget++
-        }
-    }
-}
-
-function pointsClose(point1: number[],point2: THREE.Vector3) {
-    const x = point1[0] - point2.x
-    const y = point1[1] - point2.y
-    const z = point1[2] - point2.z
+function pointsClose(point1: number[], point2: number[]) {
+    const x = point1[0] - point2[0]
+    const y = point1[1] - point2[1]
+    const z = point1[2] - point2[2]
     const length = Math.sqrt(x * x + y * y + z * z)
     return length < 1
 }
@@ -244,6 +181,116 @@ function updateInfoBox() {
     }
 }
 
+let acceleration = [0, 0, 0]
+let velocityCount = [0, 0, 0]
+let position = [0, 0, 0]
+let trackedPositions: number[][] = []
+let pathRenderCompleted = false
+function plotPath() {
+    for(let i = 0; i < data.length-1; i++) {
+        const passedTime = data[i+1].time - data[i].time
+        for(let j = 0; j < passedTime; j++) {
+            position[0] = position[0] + velocityCount[0] * (1 / 1000) 
+            position[1] = position[1] + velocityCount[1] * (1 / 1000)
+            position[2] = position[2] + velocityCount[2] * (1 / 1000)
+
+            velocityCount[0] = velocityCount[0] + acceleration[0] * (1 / 1000)
+            velocityCount[1] = velocityCount[1] + acceleration[1] * (1 / 1000) 
+            velocityCount[2] = velocityCount[2] + acceleration[2] * (1 / 1000) 
+
+            acceleration[0] = data[i].x
+            acceleration[1] = data[i].y
+            acceleration[2] = data[i].z
+        }
+        
+        trackedPositions.push([...position])
+    }
+    displayDataPoints(trackedPositions)
+    displayTrackerLine(trackedPositions)
+    pathRenderCompleted = true
+}
+
+function displayDataPoints(pos: number[][]) {
+    for(let i = 0; i < pos.length; i++) {
+        const geometry = new THREE.SphereGeometry(0.25, 24, 24)
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xFF8000,
+        })
+        const point = new THREE.Mesh(geometry, material)
+        point.position.set(pos[i][0], pos[i][1], pos[i][2])
+        scene.add(point)
+    }
+}
+
+function displayTrackerLine(pos: number[][]) {
+    const material = new THREE.LineBasicMaterial( {
+        linewidth: 10,
+        color: 0x00ff00,
+        } )
+    const points = []
+    for(let i = 0; i < pos.length; i++) {
+        points.push(new THREE.Vector3(pos[i][0], pos[i][1], pos[i][2]))
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints( points )
+    const line = new THREE.Line( geometry, material );
+    scene.add(line)
+}
+
+
+let rocketPosition: number[]
+let velocity: number
+let currentTarget: number
+function startRocketAnimation(startPos: number[] = [0, 0, 0], startVelocity: number = 0.05) {
+    rocketPosition = [...startPos]
+    velocity = startVelocity
+    currentTarget = 0 
+}
+startRocketAnimation()
+function updateRocketPosition() {
+    if(currentTarget !== null && currentTarget < trackedPositions.length && pathRenderCompleted ) {
+        const x = trackedPositions[currentTarget][0] - rocketPosition[0]
+        const y = trackedPositions[currentTarget][1] - rocketPosition[1]
+        const z = trackedPositions[currentTarget][2] - rocketPosition[2]
+        const length = Math.sqrt(x * x + y * y + z * z)
+        if(length === 0) return
+        const xVelocity = (x / length) * velocity
+        const yVelocity = (y / length) * velocity
+        const zVelocity = (z / length) * velocity
+        rocketPosition[0] += xVelocity
+        rocketPosition[1] += yVelocity
+        rocketPosition[2] += zVelocity
+        rocketModel.position.set(rocketPosition[0], rocketPosition[1], rocketPosition[2])
+
+        let angleZ: number
+        let angleX: number
+
+        if(xVelocity > 0) {
+            angleZ = Math.PI / 2 - Math.atan(y / x)
+        } else if(xVelocity === 0) {
+            angleZ = 0
+        } else {
+            angleZ = Math.atan(y / x)
+        }
+        if(zVelocity > 0) {
+            angleX = Math.PI / 2 - Math.atan(y / z)
+        } else if(zVelocity === 0) {
+            angleX = 0
+        } else {
+            angleX = Math.atan(y / z)
+        }
+        rocketModel.rotation.z = -angleZ
+        rocketModel.rotation.x = angleX
+        if(pointsClose(rocketPosition, trackedPositions[currentTarget])) {
+            currentTarget++
+        }
+    }
+    if(currentTarget === trackedPositions.length) {
+        startRocketAnimation()
+    }
+}
+
+plotPath()
+
 function animate() {
     requestAnimationFrame(animate)
     hoverDataPoint()
@@ -255,46 +302,4 @@ function animate() {
 
 function render() {
     renderer.render(scene, camera)
-}
-
-const NOT_PROCESSED_DATA = [
-    {
-        x: 10,
-        y: 5,
-        z: 3,
-        tid: 0,
-    },
-    {
-        x: 3,
-        y: 12,
-        z: 1,
-        tid: 10,
-    },
-    {
-        x: 2,
-        y: 20,
-        z: 2,
-        tid: 20,
-    },
-]
-
-let acceleration = [0, 0, 0]
-let velocityCount = [0, 0, 0]
-let position = [0, 0, 0]
-
-for(let i = 0; i < NOT_PROCESSED_DATA.length-1; i++) {
-    const passedTime = NOT_PROCESSED_DATA[i+1].tid - NOT_PROCESSED_DATA[i].tid
-    for(let j = 0; j < passedTime; j++) {
-        position[0] = position[0] + velocityCount[0] * (1 / 1000) 
-        position[1] = position[1] + velocityCount[1] * (1 / 1000)
-        position[2] = position[2] + velocityCount[2] * (1 / 1000)
-
-        velocityCount[0] = velocityCount[0] + acceleration[0] * (1 / 1000)
-        velocityCount[1] = velocityCount[1] + acceleration[1] * (1 / 1000) 
-        velocityCount[2] = velocityCount[2] + acceleration[2] * (1 / 1000) 
-
-        acceleration[0] = NOT_PROCESSED_DATA[i].x
-        acceleration[1] = NOT_PROCESSED_DATA[i].y
-        acceleration[2] = NOT_PROCESSED_DATA[i].z
-    }
 }
