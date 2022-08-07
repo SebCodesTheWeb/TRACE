@@ -9,6 +9,7 @@ let position = [0, 0, 0]
 let trackedPositions: number[][] = []
 let pathRenderCompleted = false
 let averageOffset = [0, 0, 0]
+let animationPlaying = false;
 
 let data = require('./data.json')
 function csvToJson(str: any, delimiter = ",") {
@@ -68,9 +69,9 @@ renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
 const controls = new OrbitControls(camera, renderer.domElement)
-controls.maxDistance = 600 
+controls.maxDistance = 800 
 controls.minDistance = 10
-// controls.maxPolarAngle = Math.PI / 2 * 0.99
+controls.maxPolarAngle = Math.PI / 2 * 0.99
 
 const gridHelperZ = new THREE.GridHelper(1000, 50, 0xffffff, 0xffffff)
 gridHelperZ.rotation.z = Math.PI / 2
@@ -166,7 +167,6 @@ function getRandomCoordinates(spread=200) {
     return [x, y + 100, z]
 } 
 
-
 function onMouseMove( event: any ) {
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
@@ -184,14 +184,13 @@ function hoverDataPoint() {
 let selectedIndex: number | null
 function findSelectedData() {
     if(selectedPoint) {
-        for(let i = 0; i < data.length; i++) {
-            if(data[i][" x"] === selectedPoint.x && data[i][" y"] === selectedPoint.y && data[i][" z"] === selectedPoint.z) {
+        for(let i = 0; i < trackedPositions.length; i++) {
+            if(trackedPositions[i][0] === selectedPoint.x && trackedPositions[i][1] === selectedPoint.y && trackedPositions[i][2] === selectedPoint.z) {
                 selectedIndex = i
             }
         }
     }
 }
-
 
 function pointsClose(point1: number[], point2: number[]) {
     const x = point1[0] - point2[0]
@@ -201,7 +200,7 @@ function pointsClose(point1: number[], point2: number[]) {
     return length < 1
 }
 
-// window.addEventListener('resize', onWindowResize, false)
+window.addEventListener('resize', onWindowResize, false)
 window.addEventListener('click', onMouseMove, false)
 window.addEventListener('load', () => {
     setTimeout(() => {
@@ -226,15 +225,33 @@ function updateInfoBox() {
     findSelectedData()
     if(selectedIndex != null) {
         const infoBox = document.getElementById('info-box')
+        console.log(data[selectedIndex])
         if(infoBox) {
-            infoBox.innerText = "x: " + data[selectedIndex].x + "\n y: " + data[selectedIndex].y + "\n z: " + data[selectedIndex].z + "\n time: " + data[selectedIndex].time
+            infoBox.innerText = 
+            "x: " + trackedPositions[selectedIndex][0] + "m"
+            + "\n y: " + trackedPositions[selectedIndex][1] + "m"
+            + "\n z: " + trackedPositions[selectedIndex][2] + "m"
+            + "\n light strength: " + data[selectedIndex][" lightStrength"]
+            + "\n temperature: " + data[selectedIndex][" temp"] + "C"
+            + "\n humidity: " + data[selectedIndex][" humidity "] + "%"
+            + "\n time:  " + data[selectedIndex].time + "ms"
         }
     }
 }
 
 const gui = new GUI()
 let rocketAnimationButton = { playAnimation:function(){ startRocketAnimation() }};
-gui.add(rocketAnimationButton,'playAnimation');
+let rocketVelocity = {
+    velocity: 0.1,
+}
+let centerCamera = {
+    focusOnRocket: true,
+}
+const rocketFolder = gui.addFolder("Rocket")
+rocketFolder.add(rocketAnimationButton, 'playAnimation')
+rocketFolder.add(rocketVelocity, 'velocity', 0.01, 2)
+rocketFolder.add(centerCamera, "focusOnRocket")
+rocketFolder.open()
 const cameraFolder = gui.addFolder('Camera')
 cameraFolder.add(camera.position, 'x', -1000, 1000)
 cameraFolder.add(camera.position, 'y', 0, 1000)
@@ -264,7 +281,7 @@ function plotPath(data: any) {
             velocityCount[2] = velocityCount[2] + acceleration[2] * (1 / 1000) 
 
             acceleration[0] = data[i][" x"] - averageOffset[0]
-            acceleration[1] = data[i][" y"] - averageOffset[1]
+            acceleration[1] = data[i][" y"] //- averageOffset[1]
             acceleration[2] = data[i][" z"] - averageOffset[2]
         }
         
@@ -303,12 +320,12 @@ function displayTrackerLine(pos: number[][]) {
 
 
 let rocketPosition: number[]
-let velocity: number
 let currentTarget: number
 function startRocketAnimation(startPos: number[] = [0, 0, 0], startVelocity: number = 0.05) {
     rocketPosition = [...startPos]
-    velocity = startVelocity
+    rocketVelocity.velocity = startVelocity
     currentTarget = 0 
+    animationPlaying = true
 }
 function updateRocketPosition() {
     if(currentTarget !== null && currentTarget < trackedPositions.length && pathRenderCompleted ) {
@@ -317,13 +334,17 @@ function updateRocketPosition() {
         const z = trackedPositions[currentTarget][2] - rocketPosition[2]
         const length = Math.sqrt(x * x + y * y + z * z)
         if(length === 0) return
-        const xVelocity = (x / length) * velocity
-        const yVelocity = (y / length) * velocity
-        const zVelocity = (z / length) * velocity
+        const xVelocity = (x / length) * rocketVelocity.velocity
+        const yVelocity = (y / length) * rocketVelocity.velocity
+        const zVelocity = (z / length) * rocketVelocity.velocity
         rocketPosition[0] += xVelocity
         rocketPosition[1] += yVelocity
         rocketPosition[2] += zVelocity
         rocketModel.position.set(rocketPosition[0], rocketPosition[1], rocketPosition[2])
+        if(animationPlaying) {
+            selectedIndex = currentTarget
+            updateInfoBox()
+        }
 
         let angleZ: number
         let angleX: number
@@ -357,6 +378,9 @@ function animate() {
     updateInfoBox()
     updateRocketPosition()
     render()
+    if(centerCamera.focusOnRocket) {
+        controls.target.copy( rocketModel.position );
+    }
 }
 
 function render() {

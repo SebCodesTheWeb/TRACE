@@ -67,6 +67,7 @@
                 box-shadow: 0px 0px 10px black;
                 font-size: 1.2rem;
                 visibility: hidden;
+                opacity: 0.8;
             }
 
             .loader {
@@ -122,14 +123,16 @@
                 right: 90px;
                 top: 0;
             }
+
             #loadPath {
                 position: fixed;
                 right: 260px;
-                top: 40px;
+                top: 30px;
             }
 
             .chart {
                 width: 50%;
+                max-width: 800px;
             }
 
             #parent_graphs {
@@ -139,9 +142,10 @@
                 bottom: 0;
                 opacity: 0.8;
                 border-top: 5px solid #333;
-                padding-left: 100px;
                 background-color: white;
+                padding-top: 20px;
                 display: flex;
+                justify-content: center;
             }
 
             @keyframes rotate-one {
@@ -180,10 +184,18 @@
             <div class="inner two"></div>
             <div class="inner three"></div>
           </div>          
-        <div id="info-box"></div>
+        <div id="info-box">
+            x: 0m <br>
+            y: 0m <br>
+            z: 0m <br>
+            light strength: 0 <br>
+            temperature: 0 C <br>
+            humidity: 0% <br>
+            time: 0ms <br>
+        </div>
         <form id="csv-form">
             <input type="file" id="uploadFile" />
-            <input id="loadPath" type="submit" value="Submit" />
+            <input id="loadPath" type="submit" value="Plot Path" />
         </form>
         <img src="./img/TRACE_logo.png" id="logo" />
 
