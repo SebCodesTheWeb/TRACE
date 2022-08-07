@@ -38,7 +38,6 @@ myForm?.addEventListener("submit", function (e) {
     const text = event?.target?.result
     data = csvToJson(text)
     averageOffset = calibrateSensor(data)
-    console.log(data)
     plotPath(data)
   };
   reader.readAsText(input)
