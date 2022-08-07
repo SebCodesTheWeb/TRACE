@@ -3,7 +3,59 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { GUI } from 'dat.gui'
 
-const data = require('./data.json')
+let acceleration = [0, 0, 0]
+let velocityCount = [0, 0, 0]
+let position = [0, 0, 0]
+let trackedPositions: number[][] = []
+let pathRenderCompleted = false
+let averageOffset = [0, 0, 0]
+
+let data = require('./data.json')
+function csvToJson(str: any, delimiter = ",") {
+    const headers = str.slice(0, str.indexOf("\n")).split(delimiter)
+    const rows = str.slice(str.indexOf("\n") + 1).split("\n")
+    const arr = rows.map(function (row: any) {
+      const values = row.split(delimiter)
+      const el = headers.reduce(function (object: any, header: any, index: any) {
+            object[header] = parseFloat(values[index])
+            return object
+      }, {})
+      return el
+    });
+  
+    arr.pop()
+    return [...arr]
+}
+
+const myForm = document.getElementById("csv-form")
+const csvFile: any = document.getElementById("uploadFile")
+
+myForm?.addEventListener("submit", function (e) {
+  e.preventDefault()
+  const input = csvFile?.files[0]
+  const reader = new FileReader()
+  reader.onload = function (event) {
+    const text = event?.target?.result
+    data = csvToJson(text)
+    averageOffset = calibrateSensor(data)
+    console.log(data)
+    plotPath(data)
+  };
+  reader.readAsText(input)
+});
+
+function calibrateSensor(data: any) {
+    let averageX = 0;
+    let averageY = 0;
+    let averageZ = 0;
+    for(let i = 0; i < 100; i++) {
+        averageX += data[i][" x"]
+        averageY += data[i][" y"]
+        averageZ += data[i][" z"]
+    }
+    return [averageX / 100, averageY / 100, averageZ / 100]
+}
+
 const mouse = new THREE.Vector2()
 const raycaster = new THREE.Raycaster()
 
@@ -19,7 +71,7 @@ document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.maxDistance = 600 
 controls.minDistance = 10
-controls.maxPolarAngle = Math.PI / 2 * 0.99
+// controls.maxPolarAngle = Math.PI / 2 * 0.99
 
 const gridHelperZ = new THREE.GridHelper(1000, 50, 0xffffff, 0xffffff)
 gridHelperZ.rotation.z = Math.PI / 2
@@ -116,7 +168,6 @@ function getRandomCoordinates(spread=200) {
 } 
 
 
-
 function onMouseMove( event: any ) {
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
@@ -135,7 +186,7 @@ let selectedIndex: number | null
 function findSelectedData() {
     if(selectedPoint) {
         for(let i = 0; i < data.length; i++) {
-            if(data[i].x === selectedPoint.x && data[i].y === selectedPoint.y && data[i].z === selectedPoint.z) {
+            if(data[i][" x"] === selectedPoint.x && data[i][" y"] === selectedPoint.y && data[i][" z"] === selectedPoint.z) {
                 selectedIndex = i
             }
         }
@@ -192,12 +243,16 @@ cameraFolder.add(camera.position, 'z', -1000, 1000)
 cameraFolder.add(camera, 'zoom', 0.1, 10)
 cameraFolder.open()
 
-let acceleration = [0, 0, 0]
-let velocityCount = [0, 0, 0]
-let position = [0, 0, 0]
-let trackedPositions: number[][] = []
-let pathRenderCompleted = false
-function plotPath() {
+
+function resetPath() {
+    accleration = [0, 0, 0]
+    velocityCount = [0, 0, 0]
+    position = [0, 0, 0]
+    trackedPositions = []
+    pathRenderCompleted = false
+}
+
+function plotPath(data: any) {
     for(let i = 0; i < data.length-1; i++) {
         const passedTime = data[i+1].time - data[i].time
         for(let j = 0; j < passedTime; j++) {
@@ -209,9 +264,9 @@ function plotPath() {
             velocityCount[1] = velocityCount[1] + acceleration[1] * (1 / 1000) 
             velocityCount[2] = velocityCount[2] + acceleration[2] * (1 / 1000) 
 
-            acceleration[0] = data[i].x
-            acceleration[1] = data[i].y
-            acceleration[2] = data[i].z
+            acceleration[0] = data[i][" x"] - averageOffset[0]
+            acceleration[1] = data[i][" y"] - averageOffset[1]
+            acceleration[2] = data[i][" z"] - averageOffset[2]
         }
         
         trackedPositions.push([...position])
@@ -295,8 +350,6 @@ function updateRocketPosition() {
         }
     }
 }
-
-plotPath()
 
 function animate() {
     requestAnimationFrame(animate)

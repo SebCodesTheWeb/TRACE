@@ -82,6 +82,17 @@
                 height: 100px;    
             }
 
+            #uploadFile {
+                position: fixed;
+                right: 90px;
+                top: 0;
+            }
+            #loadPath {
+                position: fixed;
+                right: 260px;
+                top: 40px;
+            }
+
             @keyframes rotate-one {
                 0% {
                     transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg);
@@ -119,6 +130,10 @@
             <div class="inner three"></div>
           </div>          
         <div id="info-box"></div>
+        <form id="csv-form">
+            <input type="file" id="uploadFile" />
+            <input id="loadPath" type="submit" value="Submit" />
+        </form>
         <img src="./img/TRACE_logo.png" id="logo" />
     </body>
 </html>
