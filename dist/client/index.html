@@ -10,36 +10,89 @@
         <link rel="icon" type="image/x-icon" href="./img/TRACE_logo.jpg">
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script type="text/javascript">
+            function csvToJson(str, delimiter = ",") {
+                const headers = str.slice(0, str.indexOf("\n")).split(delimiter)
+                const rows = str.slice(str.indexOf("\n") + 1).split("\n")
+                const arr = rows.map(function (row) {
+                const values = row.split(delimiter)
+                const el = headers.reduce(function (object, header, index) {
+                        object[header] = parseFloat(values[index])
+                        return object
+                }, {})
+                return el
+                });
+            
+                arr.pop()
+                return [...arr]
+            }
+            window.addEventListener('load', () => {
+                const myForm = document.getElementById("csv-form")
+                const csvFile = document.getElementById("uploadFile")
+                myForm?.addEventListener("submit", function (e) {
+                    e.preventDefault()
+                    const input = csvFile?.files[0]
+                    const reader = new FileReader()
+                    reader.onload = function (event) {
+                        const text = event?.target?.result
+                        data = csvToJson(text)
+                        drawChart(data)
+                    };
+                    reader.readAsText(input)
+                });
+            })
+
           google.charts.load('current', {'packages':['corechart']});
-          google.charts.setOnLoadCallback(drawChart);
+        //   google.charts.setOnLoadCallback(drawChart);
     
-          function drawChart() {
-            let graph1 = google.visualization.arrayToDataTable([
-              ['Time', 'Acceleration', 'LightStrength'],
-              ['50',  1000,      400],
-              ['100',  1170,      460],
-              ['150',  660,       1120],
-              ['200',  1030,      540]
-            ])
-            let graph2= google.visualization.arrayToDataTable([
-              ['Time', 'Temp', 'Humidity'],
-              ['50',  1000,      400],
-              ['100',  1170,      460],
-              ['150',  660,       1120],
-              ['200',  1030,      540]
-            ])
+          function drawChart(data) {
+            let timeArray = data.map((dataPoint) => {
+                return dataPoint.time
+            })
+            let accelerationArray = data.map((dataPoint) => {
+                return Math.sqrt(Math.pow(dataPoint[" x"], 2) + Math.pow(dataPoint[" y"], 2) + Math.pow(dataPoint[" z"], 2))
+            })
+            let tempArray = data.map((dataPoint) => {
+                return dataPoint[" temp"]
+            })
+            let humidityArray = data.map((dataPoint) => {
+                return dataPoint[" humidity "]
+            })
+            let lightStrengthArray = data.map((dataPoint) => {
+                return dataPoint[" lightStrength"]
+            })
+
+            let graphData1 = []
+            let graphData2 = [] 
+
+            graphData1.push(['Time', 'Acceleration', 'Light Strength'])
+            graphData2.push(['Time', 'Temperature', 'Humidity'])
+
+            for(let i = 0; i < data.length; i++) {
+                graphData1.push([timeArray[i], accelerationArray[i], lightStrengthArray[i]])
+                graphData2.push([timeArray[i], tempArray[i], humidityArray[i]])
+            }
+
+            let graph1 = google.visualization.arrayToDataTable(graphData1)
+
+            let graph2= google.visualization.arrayToDataTable(graphData2)
     
-            let options = {
-              title: 'Acceleration',
+            let config1 = {
+              title: 'Acceleration and Light Strength',
               curveType: 'function',
               legend: { position: 'top' }
+            }
+
+            let config2 = {
+                title: 'Temperature and humidity',
+                curveType: 'function',
+                legend: { position: 'top' }
             }
     
             let chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
             let chart2 = new google.visualization.LineChart(document.getElementById('curve_chart2'));
     
-            chart.draw(graph1, options);
-            chart2.draw(graph2, options);
+            chart.draw(graph1, config1);
+            chart2.draw(graph2, config2);
           }
         </script>
 
@@ -143,6 +196,7 @@
                 opacity: 0.8;
                 border-top: 5px solid #333;
                 background-color: white;
+                padding-left: 50px;
                 padding-top: 20px;
                 display: flex;
                 justify-content: center;

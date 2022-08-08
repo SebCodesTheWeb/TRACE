@@ -247,10 +247,19 @@ let rocketVelocity = {
 let centerCamera = {
     focusOnRocket: true,
 }
+let calibrateArduinoAccelerator = {
+    xCalibration: true,
+    yCalibration: false,
+    zCalibration: true,
+}
+
 const rocketFolder = gui.addFolder("Rocket")
 rocketFolder.add(rocketAnimationButton, 'playAnimation')
 rocketFolder.add(rocketVelocity, 'velocity', 0.01, 2)
 rocketFolder.add(centerCamera, "focusOnRocket")
+rocketFolder.add(calibrateArduinoAccelerator, 'xCalibration')
+rocketFolder.add(calibrateArduinoAccelerator, 'yCalibration')
+rocketFolder.add(calibrateArduinoAccelerator, 'zCalibration')
 rocketFolder.open()
 const cameraFolder = gui.addFolder('Camera')
 cameraFolder.add(camera.position, 'x', -1000, 1000)
@@ -280,9 +289,22 @@ function plotPath(data: any) {
             velocityCount[1] = velocityCount[1] + acceleration[1] * (1 / 1000) 
             velocityCount[2] = velocityCount[2] + acceleration[2] * (1 / 1000) 
 
-            acceleration[0] = data[i][" x"] - averageOffset[0]
-            acceleration[1] = data[i][" y"] //- averageOffset[1]
-            acceleration[2] = data[i][" z"] - averageOffset[2]
+            if(calibrateArduinoAccelerator.xCalibration) {
+                acceleration[0] = data[i][" x"] - averageOffset[0]
+            } else {
+                acceleration[0] = data[i][" x"]
+            }
+            if(calibrateArduinoAccelerator.yCalibration) {
+                acceleration[1] = data[i][" y"] - averageOffset[1]
+            } else {
+                acceleration[1] = data[i][" y"]
+            }
+            if(calibrateArduinoAccelerator.zCalibration) {
+                acceleration[2] = data[i][" z"] - averageOffset[2]
+            } else {
+                acceleration[2] = data[i][" z"]
+            }
+
         }
         
         trackedPositions.push([...position])
