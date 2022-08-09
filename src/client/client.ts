@@ -248,15 +248,20 @@ let centerCamera = {
     focusOnRocket: true,
 }
 let calibrateArduinoAccelerator = {
-    xCalibration: true,
+    xCalibration: false,
     yCalibration: false,
-    zCalibration: true,
+    zCalibration: false,
+}
+
+let rotationAnimation = {
+    rotate: false,
 }
 
 const rocketFolder = gui.addFolder("Rocket")
 rocketFolder.add(rocketAnimationButton, 'playAnimation')
 rocketFolder.add(rocketVelocity, 'velocity', 0.01, 2)
 rocketFolder.add(centerCamera, "focusOnRocket")
+rocketFolder.add(rotationAnimation, 'rotate')
 rocketFolder.add(calibrateArduinoAccelerator, 'xCalibration')
 rocketFolder.add(calibrateArduinoAccelerator, 'yCalibration')
 rocketFolder.add(calibrateArduinoAccelerator, 'zCalibration')
@@ -385,8 +390,12 @@ function updateRocketPosition() {
         } else {
             angleX = Math.atan(y / z)
         }
-        // rocketModel.rotation.z = -angleZ
-        // rocketModel.rotation.x = angleX
+
+        if(rotationAnimation.rotate) {
+            rocketModel.rotation.z = -angleZ
+            rocketModel.rotation.x = angleX
+        }
+
         if(pointsClose(rocketPosition, trackedPositions[currentTarget])) {
             currentTarget++
         }
