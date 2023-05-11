@@ -281,7 +281,7 @@ function updateInfoBox() {
 
 const gui = new GUI()
 let rocketAnimationButton = {
-    playAnimation: function () {
+    LAUNCH_ROCKET: function () {
         startRocketAnimation()
     },
 }
@@ -302,7 +302,7 @@ let rotationAnimation = {
 }
 
 const rocketFolder = gui.addFolder('Rocket')
-rocketFolder.add(rocketAnimationButton, 'playAnimation')
+rocketFolder.add(rocketAnimationButton, 'LAUNCH_ROCKET')
 rocketFolder.add(rocketVelocity, 'velocity', 0.01, 2)
 rocketFolder.add(centerCamera, 'focusOnRocket')
 rocketFolder.add(rotationAnimation, 'rotate')
