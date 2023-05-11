@@ -4,31 +4,51 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>TRACE</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">  
-        <link rel="icon" type="image/x-icon" href="./img/TRACE_logo.jpg">
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="icon" type="image/x-icon" href="./img/TRACE_logo.jpg" />
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script type="text/javascript">
-            function csvToJson(str, delimiter = ",") {
-                const headers = str.slice(0, str.indexOf("\n")).split(delimiter)
-                const rows = str.slice(str.indexOf("\n") + 1).split("\n")
+            function csvToJson(str, delimiter = ',') {
+                const headers = str.slice(0, str.indexOf('\n')).split(delimiter)
+                const rows = str.slice(str.indexOf('\n') + 1).split('\n')
                 const arr = rows.map(function (row) {
-                const values = row.split(delimiter)
-                const el = headers.reduce(function (object, header, index) {
+                    const values = row.split(delimiter)
+                    const el = headers.reduce(function (object, header, index) {
                         object[header] = parseFloat(values[index])
                         return object
-                }, {})
-                return el
-                });
-            
+                    }, {})
+                    return el
+                })
+
                 arr.pop()
                 return [...arr]
             }
+            fetch('https://space-voyage-data-api.onrender.com/data/1', {
+                method: 'GET',
+                headers: {
+                    Accept: 'text/plain',
+                },
+            })
+                .then((response) => {
+                    return response.text()
+                })
+                .then((txt) => {
+                    data = csvToJson(txt)
+                    drawChart(data)
+                })
+                .catch((error) => {
+                    console.log('There was a problem with the fetch operation: ' + error.message)
+                })
+
             window.addEventListener('load', () => {
-                const myForm = document.getElementById("csv-form")
-                const csvFile = document.getElementById("uploadFile")
-                myForm?.addEventListener("submit", function (e) {
+                const myForm = document.getElementById('csv-form')
+                const csvFile = document.getElementById('uploadFile')
+                myForm?.addEventListener('submit', function (e) {
                     e.preventDefault()
                     const input = csvFile?.files[0]
                     const reader = new FileReader()
@@ -36,68 +56,75 @@
                         const text = event?.target?.result
                         data = csvToJson(text)
                         drawChart(data)
-                    };
+                    }
                     reader.readAsText(input)
-                });
+                })
             })
 
-          google.charts.load('current', {'packages':['corechart']});
-        //   google.charts.setOnLoadCallback(drawChart);
-    
-          function drawChart(data) {
-            let timeArray = data.map((dataPoint) => {
-                return dataPoint.time
-            })
-            let accelerationArray = data.map((dataPoint) => {
-                return Math.sqrt(Math.pow(dataPoint[" x"], 2) + Math.pow(dataPoint[" y"], 2) + Math.pow(dataPoint[" z"], 2))
-            })
-            let tempArray = data.map((dataPoint) => {
-                return dataPoint[" temp"]
-            })
-            let humidityArray = data.map((dataPoint) => {
-                return dataPoint[" humidity "]
-            })
-            let lightStrengthArray = data.map((dataPoint) => {
-                return dataPoint[" lightStrength"]
-            })
+            function drawChart(data) {
+                google.charts.load('current', { packages: ['corechart'] })
+                google.charts.setOnLoadCallback(() => {
+                    let timeArray = data.map((dataPoint) => {
+                        return dataPoint.time
+                    })
+                    let accelerationArray = data.map((dataPoint) => {
+                        return Math.sqrt(
+                            Math.pow(dataPoint[' x'], 2) +
+                                Math.pow(dataPoint[' y'], 2) +
+                                Math.pow(dataPoint[' z'], 2)
+                        )
+                    })
+                    let tempArray = data.map((dataPoint) => {
+                        return dataPoint[' temp']
+                    })
+                    let humidityArray = data.map((dataPoint) => {
+                        return dataPoint[' humidity ']
+                    })
+                    let lightStrengthArray = data.map((dataPoint) => {
+                        return dataPoint[' lightStrength']
+                    })
 
-            let graphData1 = []
-            let graphData2 = [] 
+                    let graphData1 = []
+                    let graphData2 = []
 
-            graphData1.push(['Time', 'Acceleration', 'Light Strength'])
-            graphData2.push(['Time', 'Temperature', 'Humidity'])
+                    graphData1.push(['Time', 'Acceleration', 'Light Strength'])
+                    graphData2.push(['Time', 'Temperature', 'Humidity'])
 
-            for(let i = 0; i < data.length; i++) {
-                graphData1.push([timeArray[i], accelerationArray[i], lightStrengthArray[i]])
-                graphData2.push([timeArray[i], tempArray[i], humidityArray[i]])
+                    for (let i = 0; i < data.length; i++) {
+                        graphData1.push([timeArray[i], accelerationArray[i], lightStrengthArray[i]])
+                        graphData2.push([timeArray[i], tempArray[i], humidityArray[i]])
+                    }
+
+                    let graph1 = google.visualization.arrayToDataTable(graphData1)
+
+                    let graph2 = google.visualization.arrayToDataTable(graphData2)
+
+                    let config1 = {
+                        title: 'Acceleration and Light Strength',
+                        curveType: 'function',
+                        legend: { position: 'top' },
+                    }
+
+                    let config2 = {
+                        title: 'Temperature and humidity',
+                        curveType: 'function',
+                        legend: { position: 'top' },
+                    }
+
+                    let chart = new google.visualization.LineChart(
+                        document.getElementById('curve_chart')
+                    )
+                    let chart2 = new google.visualization.LineChart(
+                        document.getElementById('curve_chart2')
+                    )
+
+                    chart.draw(graph1, config1)
+                    chart2.draw(graph2, config2)
+                })
             }
-
-            let graph1 = google.visualization.arrayToDataTable(graphData1)
-
-            let graph2= google.visualization.arrayToDataTable(graphData2)
-    
-            let config1 = {
-              title: 'Acceleration and Light Strength',
-              curveType: 'function',
-              legend: { position: 'top' }
-            }
-
-            let config2 = {
-                title: 'Temperature and humidity',
-                curveType: 'function',
-                legend: { position: 'top' }
-            }
-    
-            let chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
-            let chart2 = new google.visualization.LineChart(document.getElementById('curve_chart2'));
-    
-            chart.draw(graph1, config1);
-            chart2.draw(graph2, config2);
-          }
         </script>
 
         <style>
-
             html {
                 height: 100%;
             }
@@ -106,7 +133,11 @@
                 overflow: hidden;
                 margin: 0px;
                 font-family: 'Space Mono', monospace;
-                background-image: radial-gradient(circle farthest-corner at center, #3C4B57 0%, #1C262B 100%);
+                background-image: radial-gradient(
+                    circle farthest-corner at center,
+                    #3c4b57 0%,
+                    #1c262b 100%
+                );
             }
 
             #info-box {
@@ -138,28 +169,28 @@
                 box-sizing: border-box;
                 width: 100%;
                 height: 100%;
-                border-radius: 50%;  
+                border-radius: 50%;
             }
 
             .inner.one {
                 left: 0%;
                 top: 0%;
                 animation: rotate-one 1s linear infinite;
-                border-bottom: 3px solid #EFEFFA;
+                border-bottom: 3px solid #efeffa;
             }
 
             .inner.two {
                 right: 0%;
                 top: 0%;
                 animation: rotate-two 1s linear infinite;
-                border-right: 3px solid #EFEFFA;
+                border-right: 3px solid #efeffa;
             }
 
             .inner.three {
                 right: 0%;
                 bottom: 0%;
                 animation: rotate-three 1s linear infinite;
-                border-top: 3px solid #EFEFFA;
+                border-top: 3px solid #efeffa;
             }
 
             #logo {
@@ -167,7 +198,7 @@
                 left: 0;
                 bottom: 0;
                 width: 100px;
-                height: 100px;    
+                height: 100px;
                 z-index: 2;
             }
 
@@ -237,15 +268,15 @@
             <div class="inner one"></div>
             <div class="inner two"></div>
             <div class="inner three"></div>
-          </div>          
+        </div>
         <div id="info-box">
-            x: 0m <br>
-            y: 0m <br>
-            z: 0m <br>
-            light strength: 0 <br>
-            temperature: 0 C <br>
-            humidity: 0% <br>
-            time: 0ms <br>
+            x: 0m <br />
+            y: 0m <br />
+            z: 0m <br />
+            light strength: 0 <br />
+            temperature: 0 C <br />
+            humidity: 0% <br />
+            time: 0ms <br />
         </div>
         <form id="csv-form">
             <input type="file" id="uploadFile" />
