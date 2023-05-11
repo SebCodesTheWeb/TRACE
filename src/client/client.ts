@@ -11,6 +11,8 @@ let pathRenderCompleted = false
 let averageOffset = [0, 0, 0]
 let animationPlaying = false;
 
+const INITIAL_ROCKET_VELOCITY = 0.4
+
 let data = require('./data.json')
 function csvToJson(str: any, delimiter = ",") {
     const headers = str.slice(0, str.indexOf("\n")).split(delimiter)
@@ -242,7 +244,7 @@ function updateInfoBox() {
 const gui = new GUI()
 let rocketAnimationButton = { playAnimation:function(){ startRocketAnimation() }};
 let rocketVelocity = {
-    velocity: 0.1,
+    velocity: INITIAL_ROCKET_VELOCITY,
 }
 let centerCamera = {
     focusOnRocket: true,
@@ -348,7 +350,7 @@ function displayTrackerLine(pos: number[][]) {
 
 let rocketPosition: number[]
 let currentTarget: number
-function startRocketAnimation(startPos: number[] = [0, 0, 0], startVelocity: number = 0.05) {
+function startRocketAnimation(startPos: number[] = [0, 0, 0], startVelocity: number = INITIAL_ROCKET_VELOCITY) {
     rocketPosition = [...startPos]
     rocketVelocity.velocity = startVelocity
     currentTarget = 0 
